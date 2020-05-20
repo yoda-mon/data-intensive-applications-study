@@ -1,0 +1,7 @@
+protocol Person {
+    record sample {
+        string userName;
+        union { null, long } favoriteNumber = null;
+        array<string> interests;
+    }
+}

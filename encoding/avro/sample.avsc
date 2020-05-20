@@ -1,0 +1,18 @@
+{
+  "type" : "record",
+  "name" : "sample",
+  "fields" : [ {
+    "name" : "userName",
+    "type" : "string"
+  }, {
+    "name" : "favoriteNumber",
+    "type" : [ "null", "long" ],
+    "default" : null
+  }, {
+    "name" : "interests",
+    "type" : {
+      "type" : "array",
+      "items" : "string"
+    }
+  } ]
+}

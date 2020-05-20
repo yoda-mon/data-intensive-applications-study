@@ -1,0 +1,12 @@
+syntax = "proto2";
+
+//package protocolbuffers;
+
+//option java_package = "com.github.yoda_mon";
+option go_package = "github.com/yoda_mon/data-intensive-application/encoding/cmd/protobuf";
+
+message Person {
+  required string userName = 1;
+  optional int64 favoriteNumber = 2;
+  repeated string interests = 3;
+}

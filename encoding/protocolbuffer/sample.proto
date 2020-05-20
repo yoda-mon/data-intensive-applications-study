@@ -1,0 +1,11 @@
+syntax = "proto2";
+
+//package protocolbuffers;
+
+//option java_package = "com.github.yoda_mon";
+
+message Person {
+  required string userName = 1;
+  optional int64 favoriteNumber = 2;
+  repeated string interests = 3;
+}

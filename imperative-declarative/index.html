@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        /*
+        li.selected > p {
+            background-color: blue;
+        }
+        */
+    </style>
+</head>
+<body>
+    <ul>
+        <li class="selected">
+            <p>Sharks</p>
+            <ul>
+                <li>Greate White Shark</li>
+                <li>Tiger Shark</li>
+                <li>Hammerhead Shark</li>
+            </ul>
+        </li>
+        <li>
+            <p>Whales</p>
+            <ul>
+                <li>Blue Whale</li>
+                <li>Humpback Whale</li>
+                <li>Fin Whale</li>
+            </ul>
+        </li>
+    </ul>
+    <script>
+        var liElements = document.getElementsByTagName("li");  // liタグの要素を持つアレイ
+        for (var i = 0; i < liElements.length; i++) {
+            if (liElements[i].className === "selected") {  // selected classを持つものに対し
+                var children = liElements[i].childNodes;  // その子ノードを選択
+                for (var j = 0; j < children.length; j++) {
+                    var child = children[j];
+                    if (child.nodeType === Node.ELEMENT_NODE && child.tagName === "P") {  // Pタグだったら
+                        child.setAttribute("style", "background-color: blue");
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>
