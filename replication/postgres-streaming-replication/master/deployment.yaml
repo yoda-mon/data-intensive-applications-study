@@ -1,0 +1,117 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-sr-master
+  labels:
+    app: postgres-sr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-sr-master
+  template:
+    metadata:
+      labels:
+        app: postgres-sr-master
+    spec:
+      initContainers:
+        - name: setup
+          image: postgres:12
+          env:
+          - name: PGPASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: postgres
+                key: password
+          - name: REPL_ROLENAME
+            valueFrom:
+              secretKeyRef:
+                name: repl
+                key: rolename
+          - name: REPL_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: repl
+                key: password
+          command:
+          - sh
+          - -c
+          - |
+            echo "Start initContainers"
+
+            if [ -e /tmp/config/postgresql.conf ]; then
+              echo "Copy postgresql.conf which inherit from configmap"
+              cp /tmp/config/postgresql.conf /var/lib/postgresql/config/
+            else
+              echo "No postgresql.conf in /tmp/config/"
+              exit 1
+            fi
+
+            if [ -e /tmp/config/pg_hba.conf ]; then
+              echo "Modify pg_hba.conf which inherit from configmap"
+              cp /tmp/config/pg_hba.conf /var/lib/postgresql/config/
+              echo "\nhost replication $REPL_ROLENAME 0.0.0.0/0 trust" >> /var/lib/postgresql/config/pg_hba.conf
+            else
+              echo "No pg_hba.conf in /tmp/config/"
+              exit 1
+            fi
+
+            echo "End initContainers"
+          volumeMounts:
+          - mountPath: /var/lib/postgresql/config
+            name: config
+          - mountPath: /tmp/config
+            name: config-files
+      containers:
+      - name: postgres
+        image: postgres:12
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres
+              key: password
+        - name: REPL_ROLENAME
+          valueFrom:
+            secretKeyRef:
+              name: repl
+              key: rolename
+        - name: REPL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: repl
+              key: password
+        volumeMounts:
+        - mountPath: /docker-entrypoint-initdb.d/
+          name: init-scripts
+        - mountPath: /var/lib/postgresql/config
+          name: config
+        args: 
+        - "-c"
+        - "config_file=/var/lib/postgresql/config/postgresql.conf"
+        - "-c"
+        - "hba_file=/var/lib/postgresql/config/pg_hba.conf"
+      volumes:
+      - name: init-scripts
+        configMap: 
+          name: postgres-sr-master-init-scripts
+          items:
+          - key: 1_setup.sh
+            path: 1_setup.sh
+      - name: config
+        emptyDir: {}
+      - name: config-files
+        projected:
+          sources:
+          - configMap: 
+              name: postgres-sr-master-postgres-conf
+              items:
+              - key: postgresql.conf
+                path: postgresql.conf
+          - configMap: 
+              name: postgres-sr-master-pg-hba-conf
+              items:
+              - key: pg_hba.conf
+                path: pg_hba.conf

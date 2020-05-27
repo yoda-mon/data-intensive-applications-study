@@ -1,0 +1,108 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-sr-slave
+  labels:
+    app: postgres-sr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-sr-slave
+  template:
+    metadata:
+      labels:
+        app: postgres-sr-slave
+    spec:
+      initContainers:
+      - name: setup
+        image: postgres:12
+        env:
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres
+              key: password
+        - name: REPL_ROLENAME
+          valueFrom:
+            secretKeyRef:
+              name: repl
+              key: rolename
+        - name: REPL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: repl
+              key: password
+        command:
+        - sh
+        - -c
+        - |
+          echo "Start initContainers"
+
+          if [ -z "$(ls -A /var/lib/postgresql/data)" ]; then
+            echo "Waiting for master launching..."
+            sleep 5
+            echo "Catching up master by pg_basebackup"
+            pg_basebackup -R -h postgres-sr-master-lb.default.svc.cluster.local -p 5432 -U $REPL_ROLENAME -D $PGDATA -P
+            chown -R postgres:postgres $PGDATA
+            echo "Complete pg_basebackup"
+          else
+            echo "Skipping pg_basebackup because directory is not empty"
+          fi
+
+          if [ -e /tmp/config/postgresql.conf ]; then
+            echo "Modify postgresql.conf which inherit from configmap"
+            cp /tmp/config/postgresql.conf /var/lib/postgresql/config/
+            echo "primary_conninfo = 'host=postgres-sr-master-lb.default.svc.cluster.local port=5432 user=$REPL_ROLENAME password=$REPL_PASSWORD'" >> /var/lib/postgresql/config/postgresql.conf
+          else
+            echo "Skipping postgresql.conf preparetion"
+          fi
+
+          echo "End initContainers"
+        volumeMounts:
+        - mountPath: /var/lib/postgresql/data
+          name: data
+        - mountPath: /var/lib/postgresql/config
+          name: config
+        - mountPath: /tmp/config
+          name: config-files
+      containers:
+      - name: postgres
+        image: postgres:12
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres
+              key: password
+        volumeMounts:
+        - mountPath: /docker-entrypoint-initdb.d/
+          name: init-scripts
+        - mountPath: /var/lib/postgresql/config
+          name: config
+        - mountPath: /var/lib/postgresql/data
+          name: data
+        args: 
+        - "-c"
+        - "config_file=/var/lib/postgresql/config/postgresql.conf"
+      volumes:
+      - name: init-scripts 
+        configMap: 
+          name: postgres-sr-slave-init-scripts
+          items:
+          - key: 1_setup.sh
+            path: 1_setup.sh
+      - name: data
+        emptyDir: {}
+      - name: config
+        emptyDir: {}
+      - name: config-files
+        projected:
+          sources:
+          - configMap: 
+              name: postgres-sr-slave-postgres-conf
+              items:
+              - key: postgresql.conf
+                path: postgresql.conf

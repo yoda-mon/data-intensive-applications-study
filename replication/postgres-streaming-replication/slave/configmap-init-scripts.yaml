@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-sr-slave-init-scripts
+data:
+  1_setup.sh: |-
+    #!/bin/bash
+    touch $PGDATA/standby.signal
