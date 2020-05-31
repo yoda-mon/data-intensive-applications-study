@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-lr-slave-init-scripts
+data:
+  1_setup.sh: |-
+    #!/bin/bash
+    echo "Sleep for 5 seconds"
+    sleep 5
+  2_pgbench_tables.sh: |-
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+      CREATE DATABASE test;
+
+      \c test
+      
+      CREATE TABLE public.pgbench_accounts (
+        aid integer NOT NULL,
+        bid integer,
+        abalance integer,
+        filler character(84)
+      )
+      WITH (fillfactor='100');
+
+      CREATE TABLE public.pgbench_branches (
+        bid integer NOT NULL,
+        bbalance integer,
+        filler character(88)
+      )
+      WITH (fillfactor='100');
+
+      CREATE TABLE public.pgbench_history (
+        tid integer,
+        bid integer,
+        aid integer,
+        delta integer,
+        mtime timestamp without time zone,
+        filler character(22)
+      );
+
+      CREATE TABLE public.pgbench_tellers (
+        tid integer NOT NULL,
+        bid integer,
+        tbalance integer,
+        filler character(84)
+      )
+      WITH (fillfactor='100');
+
+      CREATE SUBSCRIPTION mysub CONNECTION 'dbname=test host=postgres-lr-master-lb.default.svc.cluster.local  user=$REPL_ROLENAME password=$REPL_PASSWORD' PUBLICATION mypub;
+    EOSQL

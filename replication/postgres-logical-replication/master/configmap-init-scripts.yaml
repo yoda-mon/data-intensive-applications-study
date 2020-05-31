@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-lr-master-init-scripts
+data:
+  1_setup.sh: |-
+    #!/bin/bash
+    set -e
+    
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+      CREATE ROLE $REPL_ROLENAME LOGIN REPLICATION PASSWORD '$REPL_PASSWORD';
+    EOSQL
+
+  2_pgbench_tables.sh: |-
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+      CREATE DATABASE test;
+    EOSQL
+    pgbench -p 5432 -i test
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+      \c test
+      CREATE PUBLICATION mypub FOR TABLE pgbench_accounts, pgbench_branches, pgbench_history, pgbench_tellers;
+      GRANT SELECT ON ALL TABLES IN SCHEMA public To repl;
+    EOSQL
