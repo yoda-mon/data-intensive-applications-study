@@ -18,7 +18,7 @@
         <maven.compiler.target>13</maven.compiler.target>
         <jackson.version>2.10.4</jackson.version>
         <jackson.msgpack.version>0.8.20</jackson.msgpack.version>
-        <thrift.version>0.13.0</thrift.version>
+        <thrift.version>0.14.0</thrift.version>
     </properties>
 
     <dependencies>
