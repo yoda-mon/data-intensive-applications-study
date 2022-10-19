@@ -16,7 +16,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>13</maven.compiler.source>
         <maven.compiler.target>13</maven.compiler.target>
-        <jackson.version>2.10.4</jackson.version>
+        <jackson.version>2.13.4.1</jackson.version>
         <jackson.msgpack.version>0.8.20</jackson.msgpack.version>
         <thrift.version>0.13.0</thrift.version>
     </properties>
